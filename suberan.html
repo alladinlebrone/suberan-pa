@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal Assistant</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
+    header, nav, main {
+      padding: 1rem;
+    }
+    header {
+      background: #007BFF;
+      color: white;
+      text-align: center;
+      animation: fadeInDown 1s ease-out;
+    }
+    nav {
+      display: flex;
+      justify-content: space-around;
+      background: #333;
+      color: white;
+      animation: slideInLeft 0.8s ease-out;
+    }
+    nav button {
+      background: none;
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    nav button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    section {
+      display: none;
+      padding: 1rem;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    section.active {
+      display: block;
+    }
+    canvas {
+      max-width: 100%;
+    }
+    /* Theme Styles */
+    body.light {
+      background-color: #ffffff;
+      color: #000;
+    }
+    body.dark {
+      background-color: #121212;
+      color: #ffffff;
+    }
+    body.colorful {
+      background: linear-gradient(to right, #ff9a9e, #fad0c4);
+      color: #000;
+    }
+    button {
+      margin: 5px;
+      transition: transform 0.2s ease;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-100px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Personal Assistant Dashboard</h1>
+  </header>
+  <nav>
+    <button onclick="showSection('dashboard')">Dashboard</button>
+    <button onclick="showSection('tasks')">Tasks</button>
+    <button onclick="showSection('budget')">Budget</button>
+    <button onclick="showSection('notes')">Notes</button>
+    <button onclick="showSection('settings')">Settings</button>
+  </nav>
+  <main>
+    <section id="dashboard" class="active">
+      <h2>Dashboard Overview</h2>
+      <div id="dashboardContent"></div>
+    </section>
+
+    <section id="tasks">
+      <h2>Task Manager</h2>
+      <form id="taskForm">
+        <input type="text" id="taskName" placeholder="Task Name" required />
+        <input type="date" id="taskDue" required />
+        <select id="taskPriority">
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+        </select>
+        <input type="text" id="taskCategory" placeholder="Category" />
+        <button type="submit">Add Task</button>
+      </form>
+      <ul id="taskList"></ul>
+    </section>
+
+    <section id="budget">
+      <h2>Budget Tracker</h2>
+      <form id="budgetForm">
+        <input type="number" id="amount" placeholder="Amount" required />
+        <select id="type">
+          <option value="Income">Income</option>
+          <option value="Expense">Expense</option>
+        </select>
+        <input type="text" id="category" placeholder="Category" required />
+        <button type="submit">Add Entry</button>
+      </form>
+      <ul id="budgetList"></ul>
+      <canvas id="budgetChart" width="400" height="200"></canvas>
+    </section>
+
+    <section id="notes">
+      <h2>Notes</h2>
+      <form id="noteForm">
+        <input type="text" id="noteTitle" placeholder="Title" required />
+        <textarea id="noteBody" placeholder="Write your note here..." required></textarea>
+        <input type="text" id="noteTags" placeholder="Tags (comma-separated)" />
+        <button type="submit">Add Note</button>
+      </form>
+      <ul id="noteList"></ul>
+    </section>
+
+    <section id="settings">
+      <h2>Settings</h2>
+      <button onclick="setTheme('light')">Light</button>
+      <button onclick="setTheme('dark')">Dark</button>
+      <button onclick="setTheme('colorful')">Colorful</button>
+    </section>
+  </main>
+
+  <script>
+    function showSection(id) {
+      document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function setTheme(theme) {
+      document.body.className = theme;
+      localStorage.setItem('theme', theme);
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      setTheme(savedTheme);
+      updateDashboard();
+    });
+
+    // TASKS
+    const taskForm = document.getElementById('taskForm');
+    const taskList = document.getElementById('taskList');
+    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+    function renderTasks() {
+      taskList.innerHTML = '';
+      tasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${task.name} - ${task.due} - ${task.priority} - ${task.category}`;
+        taskList.appendChild(li);
+      });
+    }
+
+    taskForm.onsubmit = e => {
+      e.preventDefault();
+      const newTask = {
+        name: taskForm.taskName.value,
+        due: taskForm.taskDue.value,
+        priority: taskForm.taskPriority.value,
+        category: taskForm.taskCategory.value || 'General'
+      };
+      tasks.push(newTask);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      renderTasks();
+      updateDashboard();
+      taskForm.reset();
+    };
+    renderTasks();
+
+    // BUDGET
+    const budgetForm = document.getElementById('budgetForm');
+    const budgetList = document.getElementById('budgetList');
+    let budgetData = JSON.parse(localStorage.getItem('budget')) || [];
+
+    function renderBudget() {
+      budgetList.innerHTML = '';
+      budgetData.forEach(entry => {
+        const li = document.createElement('li');
+        li.textContent = `${entry.type}: €${entry.amount} - ${entry.category}`;
+        budgetList.appendChild(li);
+      });
+    }
+
+    budgetForm.onsubmit = e => {
+      e.preventDefault();
+      const entry = {
+        amount: budgetForm.amount.value,
+        type: budgetForm.type.value,
+        category: budgetForm.category.value
+      };
+      budgetData.push(entry);
+      localStorage.setItem('budget', JSON.stringify(budgetData));
+      renderBudget();
+      updateDashboard();
+      budgetForm.reset();
+    };
+    renderBudget();
+
+    // NOTES
+    const noteForm = document.getElementById('noteForm');
+    const noteList = document.getElementById('noteList');
+    let notes = JSON.parse(localStorage.getItem('notes')) || [];
+
+    function renderNotes() {
+      noteList.innerHTML = '';
+      notes.forEach(note => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${note.title}</strong><br>${note.body}<br><small>${note.tags}</small>`;
+        noteList.appendChild(li);
+      });
+    }
+
+    noteForm.onsubmit = e => {
+      e.preventDefault();
+      const note = {
+        title: noteForm.noteTitle.value,
+        body: noteForm.noteBody.value,
+        tags: noteForm.noteTags.value
+      };
+      notes.push(note);
+      localStorage.setItem('notes', JSON.stringify(notes));
+      renderNotes();
+      updateDashboard();
+      noteForm.reset();
+    };
+    renderNotes();
+
+    // DASHBOARD
+    function updateDashboard() {
+      const content = document.getElementById('dashboardContent');
+      const upcoming = tasks.slice(0, 3).map(t => `• ${t.name} (${t.due})`).join('<br>');
+      const totalIncome = budgetData.filter(e => e.type === 'Income').reduce((a, b) => a + parseFloat(b.amount), 0);
+      const totalExpense = budgetData.filter(e => e.type === 'Expense').reduce((a, b) => a + parseFloat(b.amount), 0);
+      const budgetSummary = `Income: €${totalIncome} | Expense: €${totalExpense}`;
+      const recentNotes = notes.slice(-3).map(n => `• ${n.title}`).join('<br>');
+      content.innerHTML = `
+        <h3>Upcoming Tasks</h3><p>${upcoming || 'No tasks yet'}</p>
+        <h3>Budget Overview</h3><p>${budgetSummary}</p>
+        <h3>Recent Notes</h3><p>${recentNotes || 'No notes yet'}</p>
+        <h3>Daily Recommendation</h3><p>Stay productive and review your top 3 priorities!</p>
+      `;
+    }
+  </script>
+</body>
+</html>
